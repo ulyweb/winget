@@ -70,7 +70,7 @@ winget install NoMachine.NoMachine --scope machine --force
 winget install Devolutions.RemoteDesktopManager --force
 ````
 
-#### Yazi and fzf [[Installation URL]]@ [Yazi and FZF](https://yazi-rs.github.io/docs/installation)
+#### Yazi and fzf [Installation URL@] [Yazi and FZF](https://yazi-rs.github.io/docs/installation)
 ````
 winget install sxyazi.yazi
 # Install the optional dependencies (recommended):
