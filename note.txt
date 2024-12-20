@@ -1,0 +1,10 @@
+> > Default
+
+```
+"C:\Program Files\Google\Chrome\Application\chrome.exe" --profile-directory="Default"
+```
+
+> Guest
+```
+"C:\Program Files\Google\Chrome\Application\chrome.exe" --profile-directory="Guest Profile"
+```

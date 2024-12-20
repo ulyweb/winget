@@ -1,0 +1,36 @@
+Windows Registry Editor Version 5.00
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Clients\StartMenuInternet]
+@="Google Chrome"
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Clients\StartMenuInternet\Google Chrome\Capabilities]
+"ApplicationDescription"="Access the Internet"
+"ApplicationIcon"="C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe,0"
+"ApplicationName"="Google Chrome"
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Clients\StartMenuInternet\Google Chrome\Capabilities\FileAssociations]
+".htm"="ChromeHTML"
+".html"="ChromeHTML"
+".shtml"="ChromeHTML"
+".xht"="ChromeHTML"
+".xhtml"="ChromeHTML"
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Clients\StartMenuInternet\Google Chrome\Capabilities\Startmenu]
+"StartMenuInternet"="Google Chrome"
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Clients\StartMenuInternet\Google Chrome\Capabilities\URLAssociations]
+"ftp"="ChromeHTML"
+"http"="ChromeHTML"
+"https"="ChromeHTML"
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Clients\StartMenuInternet\Google Chrome\DefaultIcon]
+@="C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe,0"
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Clients\StartMenuInternet\Google Chrome\InstallInfo]
+"HideIconsCommand"="\"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe\" --unregister-user"
+"ReinstallCommand"="\"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe\" --register-user"
+"ShowIconsCommand"="\"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe\" --register-user"
+"IconsVisible"=dword:00000001
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\RegisteredApplications]
+"Google Chrome"="Software\\Clients\\StartMenuInternet\\Google Chrome\\Capabilities"
