@@ -14,13 +14,13 @@ REG ADD "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\AppInstaller" /v
 
 #### Let's install winget to Windows 10/11
 ````
-powershell -Command "Start-Process powershell -ArgumentList '-NoProfile -ExecutionPolicy Bypass -Command \"iwr -useb https://raw.githubusercontent.com/francisuadm/chrome/main/ps/Installer_Winget1.ps1 | iex\"' -Verb RunAs"
+powershell -Command "Start-Process powershell -ArgumentList '-NoProfile -ExecutionPolicy Bypass -Command \"iwr -useb https://raw.githubusercontent.com/ulyweb/winget/refs/heads/main/ps/Installer_Winget1.ps1 | iex\"' -Verb RunAs"
 ````
 
 #### Dell Command | update
 
 ````
-winget install Dell.CommandUpdate  --scope machine --disable-interactivity --force -h
+winget install Dell.CommandUpdate  --scope machine --force
 ````
 
 
@@ -76,3 +76,11 @@ winget install sxyazi.yazi
 # Install the optional dependencies (recommended):
 winget install Gyan.FFmpeg 7zip.7zip jqlang.jq sharkdp.fd BurntSushi.ripgrep.MSVC junegunn.fzf ajeetdsouza.zoxide ImageMagick.ImageMagick
 ````
+
+#### Resource monitor that shows usage and stats
+
+````
+winget install aristocratos.btop4win --scope machine --force
+````
+
+
