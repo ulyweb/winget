@@ -84,3 +84,10 @@ winget install aristocratos.btop4win --scope machine --force
 ````
 
 
+####  To upgrade all installed packages on your system through PowerShell.
+
+````
+winget upgrade --all --force --silent
+````
+
+
