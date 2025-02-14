@@ -90,4 +90,8 @@ winget install aristocratos.btop4win --scope machine --force
 winget upgrade --all --force --silent
 ````
 
+### TrafficMonitor
 
+````
+winget install --id=zhongyang219.TrafficMonitor.Full -e --scope machine --force
+````
