@@ -95,3 +95,7 @@ winget upgrade --all --force --silent
 ````
 winget install --id=zhongyang219.TrafficMonitor.Full -e --scope machine --force
 ````
+
+#### After the installation for Traffic Monitor close the window
+
+#### now to launch it, type in: TrafficMonitor
