@@ -107,3 +107,8 @@ winget install --id=zhongyang219.TrafficMonitor.Full -e --scope machine --force
 ````
 RunAs /noprofile /user:%USERDOMAIN%\a-[REPLACE with UserName] "powershell \"Start-Process mmc \" -Verb RunAs"
 ````
+-
+### or manual way with powershell command
+````
+RunAs /noprofile /user:%USERDOMAIN%\a-[REPLACE with UserName] "powershell \"Start-Process powershell \" -Verb RunAs"
+````
