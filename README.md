@@ -99,3 +99,11 @@ winget install --id=zhongyang219.TrafficMonitor.Full -e --scope machine --force
 #### After the installation for Traffic Monitor close the window
 
 #### now to launch it, type in: TrafficMonitor
+
+> [!NOTE]
+> ## Open Local Users & Groups
+> > ### Windows Utility - **Runs PowerShell as Admin from Run (Win+R)** | 
+
+````
+RunAs /noprofile /user:%USERDOMAIN%\a-"replace with yours" "powershell \"Start-Process mmc \" -Verb RunAs"
+````
