@@ -102,8 +102,8 @@ winget install --id=zhongyang219.TrafficMonitor.Full -e --scope machine --force
 
 > [!NOTE]
 > ## Open Local Users & Groups
-> > ### Windows Utility - **Runs PowerShell as Admin from Run (Win+R)** | 
+> > ### Windows Utility - **Runs PowerShell as A-Admin from Run (Win+R)** | 
 
 ````
-RunAs /noprofile /user:%USERDOMAIN%\a-"replace with yours" "powershell \"Start-Process mmc \" -Verb RunAs"
+RunAs /noprofile /user:%USERDOMAIN%\a-[REPLACE with UserName] "powershell \"Start-Process mmc \" -Verb RunAs"
 ````
