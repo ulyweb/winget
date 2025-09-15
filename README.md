@@ -131,3 +131,25 @@ $destinationPath = 'C:\Temp\Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbund
 Start-BitsTransfer -Source $sourceUrl -Destination $destinationPath
 ````
 
+
+
+
+> [!NOTE]
+> ### Running the Installer Remotely
+> > #### Once you've confirmed a successful download on the remote machine,
+> > #### you can run the installer using Add-AppxPackage via Invoke-Command,
+> > #### just as described in the previous response.
+
+````
+Invoke-Command -ComputerName 'Remote-PC-Name' -ScriptBlock {
+    # Assuming the file is already downloaded and verified
+    $filePath = 'C:\Temp\Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle'
+    
+    try {
+        Add-AppxPackage -Path $filePath
+        Write-Host "Installation successful."
+    } catch {
+        Write-Host "Installation failed: $($_.Exception.Message)"
+    }
+}
+````
