@@ -114,3 +114,20 @@ RunAs /noprofile /user:%USERDOMAIN%\a-[REPLACE with UserName] "powershell \"Star
 ````
 RunAs /noprofile /user:%USERDOMAIN%\a-[REPLACE with UserName] "powershell \"Start-Process powershell \" -Verb RunAs"
 ````
+
+
+> [!NOTE]
+> ### Using Start-BitsTransfer
+> > #### The BITS (Background Intelligent Transfer Service) module is a robust,
+> > #### built-in Windows component designed for resilient file transfers,
+> > #### especially in scenarios with network interruptions.
+> > This is often the most reliable method for larger files.
+
+````
+Import-Module BitsTransfer
+
+$sourceUrl = 'https://github.com/microsoft/winget-cli/releases/download/v1.11.430/Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle'
+$destinationPath = 'C:\Temp\Microsoft.DesktopAppInstaller_8wekyb3d8bbwe.msixbundle'
+Start-BitsTransfer -Source $sourceUrl -Destination $destinationPath
+````
+
