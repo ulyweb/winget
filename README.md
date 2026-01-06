@@ -36,7 +36,11 @@ winget install DisplayLink.GraphicsDriver --scope machine --force
 winget install Intel.IntelDriverAndSupportAssistant
 ````
 
+#### Good Text Editor Pro
 
+````
+winget install --id LasseMarkusRautiainen.TextEditorPro --scope machine --force -e
+````
 
 #### Alternative to Snagit
 
