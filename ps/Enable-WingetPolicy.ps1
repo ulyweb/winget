@@ -1,17 +1,55 @@
-
 # Enable-WingetPolicy.ps1
 # Purpose: If winget is blocked by Group Policy, enable required AppInstaller policies, then retry.
+# Adds: -Install switch for silent install, logging to file.
 # Usage examples:
-#   .\Enable-WingetPolicy.ps1              # defaults to Google.Chrome (ID)
-#   .\Enable-WingetPolicy.ps1 Google.Chrome
-#   .\Enable-WingetPolicy.ps1 chrome       # will try --id chrome, then fallback to --name chrome
+#   .\Enable-WingetPolicy.ps1                        # defaults to Google.Chrome (ID)
+#   .\Enable-WingetPolicy.ps1 Google.Chrome          # search by ID
+#   .\Enable-WingetPolicy.ps1 chrome                 # tries ID, then falls back to name search
+#   .\Enable-WingetPolicy.ps1 chrome -Install        # search + silent install (ID then name)
+#   .\Enable-WingetPolicy.ps1 chrome -Install -LogPath "C:\Logs\WingetPolicy.log"
 
 [CmdletBinding()]
 param(
     # Accept a positional parameter for the package target. Default is Google.Chrome.
     [Parameter(Position=0, Mandatory=$false)]
-    [string]$Target = 'Google.Chrome'
+    [string]$Target = 'Google.Chrome',
+
+    # If present, will attempt to install the target package after unblocking winget.
+    [switch]$Install,
+
+    # Optional log file path. Defaults to C:\ProgramData\WingetPolicy\Enable-WingetPolicy.log
+    [string]$LogPath
 )
+
+# ------------------------------
+# 0) Logging helpers
+# ------------------------------
+if (-not $LogPath -or [string]::IsNullOrWhiteSpace($LogPath)) {
+    $LogDir = Join-Path $env:ProgramData 'WingetPolicy'
+    if (-not (Test-Path $LogDir)) {
+        try { New-Item -Path $LogDir -ItemType Directory -Force | Out-Null } catch { }
+    }
+    $LogPath = Join-Path $LogDir 'Enable-WingetPolicy.log'
+}
+
+function Write-Log {
+    param(
+        [Parameter(Mandatory)][string]$Message,
+        [ValidateSet('INFO','WARN','ERROR','SUCCESS','DEBUG')][string]$Level = 'INFO',
+        [ConsoleColor]$Color = [ConsoleColor]::Gray
+    )
+    $ts = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
+    $line = "[$ts] [$Level] $Message"
+    Write-Host $line -ForegroundColor $Color
+    try {
+        Add-Content -LiteralPath $LogPath -Value $line -Encoding UTF8
+    } catch {
+        # If logging fails, at least continue without stopping script
+        Write-Host "[$ts] [WARN] Failed to write log: $($_.Exception.Message)" -ForegroundColor Yellow
+    }
+}
+
+Write-Log "Script started. Target='$Target', Install=$($Install.IsPresent), LogPath='$LogPath'" 'DEBUG'
 
 # ------------------------------
 # 1) Check if running as Administrator and elevate if needed
@@ -21,16 +59,21 @@ $Principal    = New-Object Security.Principal.WindowsPrincipal $CurrentUser
 $IsAdmin      = $Principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 
 if (-not $IsAdmin) {
-    Write-Host "This script must be run as an Administrator. Restarting with elevated privileges..."
+    Write-Log "This script must be run as an Administrator. Restarting with elevated privileges..." 'WARN' Yellow
     $psArgs = @(
         "-NoProfile",
         "-ExecutionPolicy", "Bypass",
         "-File", "`"$PSCommandPath`"",
         "`"$Target`""
     )
-    Start-Process -FilePath "powershell.exe" -ArgumentList $psArgs -Verb RunAs
+    if ($Install) { $psArgs += "-Install" }
+    if ($LogPath) { $psArgs += @("-LogPath", "`"$LogPath`"") }
+
+    Start-Process -FilePath "powershell.exe" -ArgumentList $psArgs -Verb RunAs | Out-Null
     exit
 }
+
+Write-Log "Running elevated." 'DEBUG'
 
 # ------------------------------
 # 2) Helpers
@@ -53,7 +96,6 @@ function Invoke-Winget {
         [Parameter(Mandatory)]
         [string]$ArgumentString
     )
-    # Capture stdout + stderr
     $psi = New-Object System.Diagnostics.ProcessStartInfo
     $psi.FileName = "winget"
     $psi.Arguments = "$Command $ArgumentString"
@@ -69,33 +111,37 @@ function Invoke-Winget {
     $stderr = $p.StandardError.ReadToEnd()
     $p.WaitForExit()
 
+    $output = ($stdout + "`n" + $stderr).Trim()
+    Write-Log "winget $Command $ArgumentString`n$output" 'DEBUG'
+
     return [PSCustomObject]@{
         ExitCode = $p.ExitCode
         StdOut   = $stdout
         StdErr   = $stderr
-        Output   = ($stdout + "`n" + $stderr).Trim()
+        Output   = $output
     }
 }
 
-function Invoke-WingetSearchById {
-    param([string]$Id)
-    return Invoke-Winget -Command 'search' -ArgumentString "--id `"$Id`""
-}
+function Invoke-WingetSearchById { param([string]$Id)   ; Invoke-Winget -Command 'search'  -ArgumentString "--id `"$Id`"" }
+function Invoke-WingetSearchByName { param([string]$Name); Invoke-Winget -Command 'search'  -ArgumentString "--name `"$Name`"" }
 
-function Invoke-WingetSearchByName {
+function Invoke-WingetInstallById {
+    param([string]$Id)
+    Invoke-Winget -Command 'install' -ArgumentString "--id `"$Id`" --silent --accept-source-agreements --accept-package-agreements"
+}
+function Invoke-WingetInstallByName {
     param([string]$Name)
-    return Invoke-Winget -Command 'search' -ArgumentString "--name `"$Name`""
+    Invoke-Winget -Command 'install' -ArgumentString "--name `"$Name`" --silent --accept-source-agreements --accept-package-agreements"
 }
 
 function Is-GroupPolicyDisabledMessage {
     param([string]$Text)
-    # Canonical example:
     # "This operation is disabled by Group Policy: Enable Windows Package Manager"
     return ($Text -match 'This operation is disabled by Group Policy:\s*Enable Windows Package Manager')
 }
 
 # ------------------------------
-# 3) Registry policy enforcement (PowerShell-native equivalent of your REG ADD commands)
+# 3) Registry policy enforcement (PowerShell-native equivalent of REG ADD)
 # ------------------------------
 $AppInstallerPolicyKey = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\AppInstaller'
 
@@ -117,10 +163,10 @@ function Ensure-AppInstallerPolicies {
             New-ItemProperty -Path $AppInstallerPolicyKey -Name $v.Name -PropertyType $v.Type -Value $v.Value -Force | Out-Null
         }
 
-        Write-Host "AppInstaller policies set to enable winget usage." -ForegroundColor Green
+        Write-Log "AppInstaller policies applied to enable winget usage." 'SUCCESS' Green
         return $true
     } catch {
-        Write-Host "Failed to set AppInstaller policies: $($_.Exception.Message)" -ForegroundColor Red
+        Write-Log "Failed to set AppInstaller policies: $($_.Exception.Message)" 'ERROR' Red
         return $false
     }
 }
@@ -130,11 +176,11 @@ function Ensure-AppInstallerPolicies {
 # ------------------------------
 
 if (-not (Test-WingetAvailable)) {
-    Write-Host "winget is not available on this system. Please install App Installer from Microsoft Store or enterprise distribution, then rerun this script." -ForegroundColor Yellow
+    Write-Log "winget is not available on this system. Install App Installer from Microsoft Store or enterprise distribution, then rerun." 'ERROR' Red
     exit 1
 }
 
-Write-Host "Attempting winget search by ID: `"$Target`"" -ForegroundColor Cyan
+Write-Log "Attempting winget search by ID: '$Target'" 'INFO' Cyan
 $initial = Invoke-WingetSearchById -Id $Target
 
 if ($initial.Output) { Write-Host $initial.Output }
@@ -142,30 +188,32 @@ if ($initial.Output) { Write-Host $initial.Output }
 $policyBlocked = Is-GroupPolicyDisabledMessage -Text $initial.Output
 
 if ($policyBlocked) {
-    Write-Host "Detected Group Policy blocking winget. Applying registry policy changes..." -ForegroundColor Yellow
+    Write-Log "Detected Group Policy blocking winget. Applying registry policy changes..." 'WARN' Yellow
 
     $ok = Ensure-AppInstallerPolicies
     if (-not $ok) {
-        Write-Host "Policy application failed. Please verify registry permissions and try again." -ForegroundColor Red
+        Write-Log "Policy application failed. Verify registry permissions and try again." 'ERROR' Red
         exit 1
     }
 
-    Write-Host "Retrying winget search by ID..." -ForegroundColor Cyan
+    Write-Log "Retrying winget search by ID..." 'INFO' Cyan
     Start-Sleep -Seconds 2
     $retry = Invoke-WingetSearchById -Id $Target
 
     if ($retry.Output) { Write-Host $retry.Output }
 
     if (Is-GroupPolicyDisabledMessage -Text $retry.Output) {
-        Write-Host "Winget still appears blocked by Group Policy after applying policies. Consider checking additional policies or rebooting." -ForegroundColor Red
+        Write-Log "Winget still blocked by Group Policy after applying policies. Consider checking additional enterprise policies or rebooting." 'ERROR' Red
         exit 1
     } else {
-        Write-Host "Success: winget appears to be working after policy change." -ForegroundColor Green
-        exit 0
+        Write-Log "Winget search works after policy change." 'SUCCESS' Green
+        $searchExit = $retry.ExitCode
     }
-}
-else {
-    # If not blocked by policy but the ID search didn't yield results, try name search as a convenience.
+} else {
+    # Not blocked by policy
+    $searchExit = $initial.ExitCode
+
+    # If ID search didn't yield results, try name search as a convenience.
     $noResultsById =
         ($initial.ExitCode -ne 0 -and -not $initial.Output) -or
         ($initial.Output -match 'No package found') -or
@@ -173,18 +221,57 @@ else {
         ($initial.Output -match '0 packages found')
 
     if ($noResultsById) {
-        Write-Host "ID search did not return results. Falling back to name search: `"$Target`"" -ForegroundColor Yellow
+        Write-Log "ID search returned no results. Falling back to name search: '$Target'" 'WARN' Yellow
         $byName = Invoke-WingetSearchByName -Name $Target
         if ($byName.Output) { Write-Host $byName.Output }
+        $searchExit = $byName.ExitCode
         if ($byName.ExitCode -eq 0) {
-            Write-Host "Name search completed." -ForegroundColor Green
-            exit 0
+            Write-Log "Name search completed." 'SUCCESS' Green
         } else {
-            Write-Host "winget search (name) returned ExitCode $($byName.ExitCode). Review output above." -ForegroundColor Yellow
-            exit $byName.ExitCode
+            Write-Log "winget search (name) returned ExitCode $($byName.ExitCode). Review output above." 'WARN' Yellow
         }
     } else {
-        Write-Host "ID search completed." -ForegroundColor Green
-        exit $initial.ExitCode
+        Write-Log "ID search completed." 'SUCCESS' Green
     }
 }
+
+# ------------------------------
+# 5) Optional silent install
+# ------------------------------
+if ($Install) {
+    Write-Log "Starting silent install for target '$Target'." 'INFO' Cyan
+
+    # Try install by ID first
+    $instId = Invoke-WingetInstallById -Id $Target
+    if ($instId.Output) { Write-Host $instId.Output }
+
+    $installSucceeded = ($instId.ExitCode -eq 0) -and (-not ($instId.Output -match 'No package found'))
+
+    if (-not $installSucceeded) {
+        Write-Log "Install by ID failed or returned no package. Falling back to install by name." 'WARN' Yellow
+        $instName = Invoke-WingetInstallByName -Name $Target
+        if ($instName.Output) { Write-Host $instName.Output }
+        $installSucceeded = ($instName.ExitCode -eq 0) -and (-not ($instName.Output -match 'No package found'))
+
+        if ($installSucceeded) {
+            Write-Log "Silent install by name succeeded." 'SUCCESS' Green
+            exit 0
+        } else {
+            Write-Log "Silent install failed. ExitCode=$($instName.ExitCode). Review winget output above." 'ERROR' Red
+            exit ($instName.ExitCode)
+        }
+    } else {
+        Write-Log "Silent install by ID succeeded." 'SUCCESS' Green
+        exit 0
+    }
+}
+
+# ------------------------------
+# 6) Exit based on search result if not installing
+# ------------------------------
+if ($searchExit -eq 0) {
+    Write-Log "Completed without install. Search successful." 'SUCCESS' Green
+} else {
+    Write-Log "Completed without install. Search returned ExitCode=$searchExit." 'WARN' Yellow
+}
+exit $searchExit
